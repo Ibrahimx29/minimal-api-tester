@@ -104,6 +104,30 @@ body {
   opacity: 0.7;
 }
 
+.sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.import-status {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.import-status:empty {
+  display: none;
+}
+
+.import-status.error {
+  color: #ef8d8d;
+}
+
 .btn-icon {
   display: flex;
   align-items: center;
@@ -391,6 +415,28 @@ body {
 .request-name-bar input::placeholder {
   color: var(--text-muted);
   font-weight: 400;
+}
+
+.timeout-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.request-name-bar .timeout-control input {
+  flex: none;
+  width: 62px;
+  padding: 5px 7px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
 }
 
 .btn-save {

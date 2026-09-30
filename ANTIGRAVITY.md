@@ -42,6 +42,7 @@ minimal-api-tester/
 │   ├── package.json     # Vite config & deps
 │   ├── src/
 │   │   ├── main.js      # Logika UI utama (JavaScript)
+│   │   ├── collectionImport.js # Parser Postman Collection JSON
 │   │   ├── app.css      # Style komponen
 │   │   └── style.css    # Style global
 │   └── wailsjs/         # Auto-generated bindings dari Wails (jangan diedit manual)
@@ -176,6 +177,7 @@ Jangan hardcode path storage; selalu gunakan `Storage` struct dari `storage.go`.
 - **Styling:** Vanilla CSS. Gunakan CSS custom properties untuk theming.
 - **Bundler:** Vite
 - **Wails bindings:** Selalu import dari `../wailsjs/go/main/App` — file ini auto-generated, **jangan diedit manual**.
+- **Import collection:** File Postman JSON dibaca di frontend dan dipetakan ke model `Collection`; variabel yang punya nilai disubstitusi, sedangkan variabel kosong dilaporkan di UI.
 - **HTTP Timeout:** 30 detik (dikonfigurasi di `app.go`)
 - **Batas respons:** 10 MB; error baca respons dan respons terlalu besar ditampilkan sebagai error
 

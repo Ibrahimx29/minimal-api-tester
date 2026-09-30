@@ -7,6 +7,7 @@ export namespace main {
 	    url: string;
 	    headers: Record<string, string>;
 	    body: string;
+	    timeout_seconds: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new APIRequest(source);
@@ -20,6 +21,7 @@ export namespace main {
 	        this.url = source["url"];
 	        this.headers = source["headers"];
 	        this.body = source["body"];
+	        this.timeout_seconds = source["timeout_seconds"];
 	    }
 	}
 	export class APIResponse {

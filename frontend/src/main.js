@@ -3,6 +3,7 @@ import {
   SaveCollections,
   LoadCollections,
 } from "../wailsjs/go/main/App.js";
+import { parsePostmanCollection } from "./collectionImport.js";
 
 // ============================
 // STATE
@@ -23,6 +24,7 @@ let saveQueue = Promise.resolve();
 // ============================
 const urlInput       = document.getElementById("url");
 const methodSelect   = document.getElementById("method");
+const timeoutInput   = document.getElementById("timeoutSeconds");
 const reqBody        = document.getElementById("reqBody");
 const sendBtn        = document.getElementById("sendBtn");
 const respBody       = document.getElementById("respBody");
@@ -31,6 +33,9 @@ const timeMsEl       = document.getElementById("timeMs");
 const sizeBytesEl    = document.getElementById("sizeBytes");
 const collectionTree = document.getElementById("collectionTree");
 const newCollectionBtn   = document.getElementById("newCollectionBtn");
+const importCollectionBtn = document.getElementById("importCollectionBtn");
+const importCollectionFile = document.getElementById("importCollectionFile");
+const importStatus = document.getElementById("importStatus");
 const saveRequestBtn     = document.getElementById("saveRequestBtn");
 const formatSelect   = document.getElementById("formatSelect");
 const searchInput    = document.getElementById("searchInput");
@@ -230,6 +235,23 @@ function mergeHeaders(custom, auth) {
   return headers;
 }
 
+function setDefaultContentType(headers, type, body) {
+  if (!body.trim() || Object.keys(headers).some((key) => key.toLowerCase() === "content-type")) return;
+  if (type === "json") headers["Content-Type"] = "application/json";
+  else if (type === "form") headers["Content-Type"] = "application/x-www-form-urlencoded";
+}
+
+function looksLikeJsonBody(body) {
+  const trimmed = body.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Body Type → auto set Content-Type
 bodyTypeSelect.addEventListener("change", () => {
   if (bodyTypeSelect.value === "json") {
@@ -287,19 +309,30 @@ function buildUrlWithParams() {
 // ============================
 sendBtn.addEventListener("click", sendRequest);
 
+timeoutInput.addEventListener("input", () => timeoutInput.setCustomValidity(""));
+
+function getTimeoutSeconds() {
+  const raw = timeoutInput.value.trim();
+  const seconds = Number(raw);
+  if (!/^\d+$/.test(raw) || !Number.isInteger(seconds) || seconds < 1 || seconds > 3600) {
+    timeoutInput.setCustomValidity("Enter a timeout from 1 to 3600 seconds.");
+    timeoutInput.reportValidity();
+    return null;
+  }
+  timeoutInput.setCustomValidity("");
+  return seconds;
+}
+
 async function sendRequest() {
+  const timeoutSeconds = getTimeoutSeconds();
+  if (timeoutSeconds === null) return;
   const finalUrl = buildUrlWithParams();
   const headersFromKv = getKvMap("headersRows");
   const authHeaders = getAuthHeaders();
   const allHeaders = mergeHeaders(headersFromKv, authHeaders);
 
-  // Set Content-Type for body
   const bodyType = bodyTypeSelect.value;
-  if (bodyType === "json" && reqBody.value.trim()) {
-    if (!Object.keys(allHeaders).some((key) => key.toLowerCase() === "content-type")) allHeaders["Content-Type"] = "application/json";
-  } else if (bodyType === "form" && reqBody.value.trim()) {
-    if (!Object.keys(allHeaders).some((key) => key.toLowerCase() === "content-type")) allHeaders["Content-Type"] = "application/x-www-form-urlencoded";
-  }
+  setDefaultContentType(allHeaders, bodyType, reqBody.value);
 
   const req = {
     id: "",
@@ -308,6 +341,7 @@ async function sendRequest() {
     url: finalUrl,
     headers: allHeaders,
     body: bodyType !== "none" ? reqBody.value : "",
+    timeout_seconds: timeoutSeconds,
   };
 
   sendBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-dasharray="63" stroke-dashoffset="20" style="animation:spin 1s linear infinite"/></svg> Sending...`;
@@ -449,12 +483,13 @@ function escHtml(str) {
 function persist() {
   if (!storageReady) {
     window.alert("Collections cannot be saved because loading the storage failed.");
-    return saveQueue;
+    return Promise.resolve(false);
   }
   const snapshot = JSON.parse(JSON.stringify(collections));
-  saveQueue = saveQueue.then(() => SaveCollections(snapshot)).catch((error) => {
+  saveQueue = saveQueue.then(() => SaveCollections(snapshot)).then(() => true).catch((error) => {
     console.error("Failed to save collections", error);
     window.alert("Failed to save collections: " + error);
+    return false;
   });
   return saveQueue;
 }
@@ -582,8 +617,13 @@ function loadRequest(req, colId) {
   reqNameInput.value = req.name || "";
   methodSelect.value = req.method || "GET";
   urlInput.value = req.url || "";
+  timeoutInput.value = req.timeout_seconds || 30;
+  timeoutInput.setCustomValidity("");
   syncParamsFromUrl();
   reqBody.value = req.body || "";
+  const contentType = Object.entries(req.headers || {}).find(([key]) => key.toLowerCase() === "content-type")?.[1]?.toLowerCase() || "";
+  bodyTypeSelect.value = !req.body ? "none" : contentType.includes("urlencoded") ? "form" : contentType.includes("json") || looksLikeJsonBody(req.body) ? "json" : "text";
+  bodyTypeSelect.dispatchEvent(new window.Event("change"));
 
   // Separate auth headers from custom headers
   const authHeader = req.headers?.["Authorization"] || "";
@@ -628,6 +668,55 @@ searchInput.addEventListener("input", () => renderTree(searchInput.value));
 // NEW COLLECTION MODAL
 // ============================
 newCollectionBtn.addEventListener("click", () => openCollectionModal());
+
+importCollectionBtn.addEventListener("click", () => {
+  if (!storageReady) {
+    importStatus.textContent = "Collections cannot be imported until storage loads successfully.";
+    importStatus.classList.add("error");
+    return;
+  }
+  importCollectionFile.click();
+});
+
+importCollectionFile.addEventListener("change", async () => {
+  const file = importCollectionFile.files?.[0];
+  if (!file) return;
+  importCollectionBtn.disabled = true;
+  try {
+    if (file.size > 10 * 1024 * 1024) throw new Error("Collection file exceeds the 10 MB limit.");
+    const { collection, report } = parsePostmanCollection(await file.text(), uid);
+    const originalName = collection.name;
+    let suffix = 2;
+    while (collections.some((existing) => existing.name.toLowerCase() === collection.name.toLowerCase())) {
+      collection.name = `${originalName} (${suffix++})`;
+    }
+    collection._open = true;
+    collections.push(collection);
+    searchInput.value = "";
+    renderTree();
+    if (!await persist()) {
+      collections = collections.filter((existing) => existing.id !== collection.id);
+      renderTree();
+      throw new Error("Collection could not be saved.");
+    }
+
+    const notes = [];
+    if (report.unresolvedVariables.length) notes.push(`Fill unresolved variables: ${report.unresolvedVariables.join(", ")}.`);
+    if (report.skippedRequests) notes.push(`${report.skippedRequests} unsupported request(s) skipped.`);
+    if (report.unsupportedBodies) notes.push(`${report.unsupportedBodies} unsupported body type(s) need review.`);
+    if (report.unsupportedAuth.length) notes.push(`Unsupported auth: ${report.unsupportedAuth.join(", ")}.`);
+    if (report.ignoredScripts) notes.push(`${report.ignoredScripts} Postman script(s) were not imported.`);
+    if (report.ignoredResponses) notes.push(`${report.ignoredResponses} saved response(s) were not imported.`);
+    importStatus.textContent = `Imported ${collection.requests.length} request(s) into "${collection.name}". ${notes.join(" ")}`.trim();
+    importStatus.classList.remove("error");
+  } catch (error) {
+    importStatus.textContent = "Import failed: " + error.message;
+    importStatus.classList.add("error");
+  } finally {
+    importCollectionFile.value = "";
+    importCollectionBtn.disabled = false;
+  }
+});
 
 function showCollectionError(msg) {
   const errEl = document.getElementById("collectionNameError");
@@ -702,6 +791,7 @@ confirmModal.addEventListener("click", () => {
 saveRequestBtn.addEventListener("click", openSaveRequestModal);
 
 function openSaveRequestModal() {
+  if (getTimeoutSeconds() === null) return;
   saveRequestModal.classList.add("open");
   saveReqNameInput.value = reqNameInput.value || buildDefaultName();
   populateSaveCollectionSelect();
@@ -742,22 +832,24 @@ createNewColFromSave.addEventListener("click", () => {
 });
 
 confirmSaveModal.addEventListener("click", () => {
+  const timeoutSeconds = getTimeoutSeconds();
+  if (timeoutSeconds === null) return;
   const name = saveReqNameInput.value.trim() || buildDefaultName();
   const colId = saveToCollection.value;
   try {
     if (!colId) {
       const col = { id: uid(), name: "My Collection", requests: [], _open: true };
       collections.push(col);
-      saveRequestTo(col.id, name);
+      saveRequestTo(col.id, name, timeoutSeconds);
     } else {
-      saveRequestTo(colId, name);
+      saveRequestTo(colId, name, timeoutSeconds);
     }
   } finally {
     closeSaveRequestModal();
   }
 });
 
-function saveRequestTo(colId, name) {
+function saveRequestTo(colId, name, timeoutSeconds) {
   const col = collections.find((c) => c.id === colId);
   if (!col) return;
   if (!Array.isArray(col.requests)) col.requests = [];
@@ -765,6 +857,7 @@ function saveRequestTo(colId, name) {
   const headersFromKv = getKvMap("headersRows");
   const authHeaders = getAuthHeaders();
   const allHeaders = mergeHeaders(headersFromKv, authHeaders);
+  setDefaultContentType(allHeaders, bodyTypeSelect.value, reqBody.value);
 
   const sourceCol = collections.find((c) => c.id === activeCollectionId);
   const existing = sourceCol?.requests.find((request) => request.id === activeRequestId);
@@ -774,7 +867,8 @@ function saveRequestTo(colId, name) {
     method: methodSelect.value,
     url: buildUrlWithParams(),
     headers: allHeaders,
-    body: reqBody.value,
+    body: bodyTypeSelect.value !== "none" ? reqBody.value : "",
+    timeout_seconds: timeoutSeconds,
   };
 
   if (existing) {
@@ -803,6 +897,7 @@ function addRequestToCollection(colId) {
     url: "",
     headers: {},
     body: "",
+    timeout_seconds: 30,
   };
   col.requests.push(req);
   col._open = true;

@@ -2,6 +2,14 @@
 
 Perubahan penting pada aplikasi ini dicatat di sini. Versi mengikuti Semantic Versioning.
 
+## [1.1.0] - 2026-09-30
+
+### Added
+
+- Import Postman Collection JSON melalui tombol upload pada sidebar Collections.
+- Dukungan folder bertingkat, substitusi variabel collection, autentikasi umum, serta laporan fitur yang perlu ditinjau setelah import.
+- Timeout request dapat diatur dan disimpan per request (1 sampai 3600 detik; default 30 detik).
+
 ## [1.0.1] - 2026-09-30
 
 ### Added

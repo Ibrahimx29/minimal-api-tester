@@ -1,0 +1,210 @@
+{
+  "info": {
+    "_postman_id": "7f8b3d21-998e-4f12-a8c9-wms-v1-api",
+    "name": "WMS API",
+    "description": "Koleksi API WMS (Warehouse Management System) External v1.\n\n### Alur Autentikasi:\n1. Jalankan request **Login External**.\n2. Script Post-response secara otomatis meng-assign `res.data.token` ke Collection Variable `token`.\n3. Request **Receive POST SAP** langsung menggunakan `{{token}}` di header Authorization.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://52.237.88.176",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login External",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const res = pm.response.json();",
+                  "    if (res.data && res.data.token) {",
+                  "        // Auto-assign langsung ke Collection Variables",
+                  "        pm.collectionVariables.set(\"token\", res.data.token);",
+                  "        console.log(\"Token berhasil di-assign ke Collection Variables:\", res.data.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usrid\": \"ADMIN\",\n  \"usrpw\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "login"]
+            },
+            "description": "Endpoint login user eksternal. Token otomatis di-assign ke collection variable 'token'."
+          },
+          "response": [
+            {
+              "name": "200 Success - Login Direct",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA0MDU0MjgsImlhdCI6MTc5MDMxOTAyOCwidXNyaWQiOiJBRE1JTiJ9.z6pd_2_j7vF1LVvfLMdfEZpTydL42ViDn_oxz55gL3Q\"\n  },\n  \"message\": \"Login successful\",\n  \"status\": 200,\n  \"success\": true\n}"
+            },
+            {
+              "name": "401 Wrong Password",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Wrong Password!\"\n}"
+            },
+            {
+              "name": "404 User Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"User Not Found!\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PO SAP",
+      "item": [
+        {
+          "name": "Receive POST SAP (XML Staging)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Staging insert is successful\", function () {",
+                  "    const res = pm.response.json();",
+                  "    pm.expect(res.message).to.include(\"PO XML processed and saved to staging successfully\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text",
+                "description": "Diambil otomatis dari Collection Variable 'token'"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/xml"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<NS5InterfaceImport CreatedOn=\"20260626\" Description=\"PO Outbound\">\n    <PO>\n        <PONo>4200000081</PONo>\n        <RevNo></RevNo>\n        <POType></POType>\n        <FiscEffDate>20260910</FiscEffDate>\n        <Company>8101</Company>\n        <CurrencyCode>IDR</CurrencyCode>\n        <ContractNo></ContractNo>\n        <AccountNo></AccountNo>\n        <ProjectNo></ProjectNo>\n        <Confirming></Confirming>\n        <OrderInfo></OrderInfo>\n        <InvoiceTo></InvoiceTo>\n        <DeliverBy>20260914</DeliverBy>\n        <SchedDate></SchedDate>\n        <PaymentTermsCode></PaymentTermsCode>\n        <FOB></FOB>\n        <ShipViaCode></ShipViaCode>\n        <DeliveryMethod></DeliveryMethod>\n        <VendorRef></VendorRef>\n        <DrydockNo></DrydockNo>\n        <ShipyardPO></ShipyardPO>\n        <LocalTaxStatus></LocalTaxStatus>\n        <NationalTaxStatus></NationalTaxStatus>\n        <Freight></Freight>\n        <Remarks>Monthly Fuel Supply for Tugboats</Remarks>\n        <Vendor>\n            <VendorCode>V-PERTAMINA</VendorCode>\n            <Name>PT Pertamina (Persero)</Name>\n            <Address1></Address1>\n            <Address2></Address2>\n            <Address3></Address3>\n            <CityCode></CityCode>\n        </Vendor>\n        <ShipTo>\n            <ShipToLocCode></ShipToLocCode>\n            <Name></Name>\n            <Address1></Address1>\n            <Address2></Address2>\n            <Address3></Address3>\n            <CityCode></CityCode>\n        </ShipTo>\n        <MaterialsLine>\n            <LineNo>1</LineNo>\n            <ReqNo>SPRE5000612</ReqNo>\n            <ReqItemID>100003104</ReqItemID>\n            <RFQNo></RFQNo>\n            <RFQItemId></RFQItemId>\n            <Quantity>2.000 </Quantity>\n            <UnitOfMeasure>PCS</UnitOfMeasure>\n            <UnitPrice>3000000.00 </UnitPrice>\n            <DiscountPct></DiscountPct>\n            <DiscountAmt></DiscountAmt>\n            <LocalTaxStatus></LocalTaxStatus>\n            <NationalTaxStatus></NationalTaxStatus>\n            <LocalTaxAmt></LocalTaxAmt>\n            <NationalTaxAmt></NationalTaxAmt>\n            <ProjectNo></ProjectNo>\n            <AccountNo>1000000001</AccountNo>\n            <ShipNo>O151</ShipNo>\n            <EqCode></EqCode>\n            <Description></Description>\n            <PIN>ABL-S001</PIN>\n        </MaterialsLine>\n        <MaterialsLine>\n            <LineNo>2</LineNo>\n            <ReqNo>SPRE5000612</ReqNo>\n            <ReqItemID>100003105</ReqItemID>\n            <RFQNo></RFQNo>\n            <RFQItemId></RFQItemId>\n            <Quantity>2000 </Quantity>\n            <UnitOfMeasure>TON</UnitOfMeasure>\n            <UnitPrice>2000000.00 </UnitPrice>\n            <DiscountPct></DiscountPct>\n            <DiscountAmt></DiscountAmt>\n            <LocalTaxStatus></LocalTaxStatus>\n            <NationalTaxStatus></NationalTaxStatus>\n            <LocalTaxAmt></LocalTaxAmt>\n            <NationalTaxAmt></NationalTaxAmt>\n            <ProjectNo></ProjectNo>\n            <AccountNo>1000000001</AccountNo>\n            <ShipNo>O151</ShipNo>\n            <EqCode></EqCode>\n            <Description></Description>\n            <PIN>ABL-F001</PIN>\n        </MaterialsLine>\n        <MaterialsLine>\n            <LineNo>3</LineNo>\n            <ReqNo>SPRE5000612</ReqNo>\n            <ReqItemID>100003106</ReqItemID>\n            <RFQNo></RFQNo>\n            <RFQItemId></RFQItemId>\n            <Quantity>5.000 </Quantity>\n            <UnitOfMeasure>PCS</UnitOfMeasure>\n            <UnitPrice>3000000.00 </UnitPrice>\n            <DiscountPct></DiscountPct>\n            <DiscountAmt></DiscountAmt>\n            <LocalTaxStatus></LocalTaxStatus>\n            <NationalTaxStatus></NationalTaxStatus>\n            <LocalTaxAmt></LocalTaxAmt>\n            <NationalTaxAmt></NationalTaxAmt>\n            <ProjectNo></ProjectNo>\n            <AccountNo>1000000001</AccountNo>\n            <ShipNo>O151</ShipNo>\n            <EqCode></EqCode>\n            <Description></Description>\n            <PIN>ABL-S002</PIN>\n        </MaterialsLine>\n        <MaterialsLine>\n            <LineNo>4</LineNo>\n            <ReqNo>SPRE5000612</ReqNo>\n            <ReqItemID>100003106</ReqItemID>\n            <RFQNo></RFQNo>\n            <RFQItemId></RFQItemId>\n            <Quantity>5.000 </Quantity>\n            <UnitOfMeasure>PCS</UnitOfMeasure>\n            <UnitPrice>3000000.00 </UnitPrice>\n            <DiscountPct></DiscountPct>\n            <DiscountAmt></DiscountAmt>\n            <LocalTaxStatus></LocalTaxStatus>\n            <NationalTaxStatus></NationalTaxStatus>\n            <LocalTaxAmt></LocalTaxAmt>\n            <NationalTaxAmt></NationalTaxAmt>\n            <ProjectNo></ProjectNo>\n            <AccountNo>1000000001</AccountNo>\n            <ShipNo>O151</ShipNo>\n            <EqCode></EqCode>\n            <Description></Description>\n            <PIN>ABL-F002</PIN>\n        </MaterialsLine>\n        <MaterialsLine>\n            <LineNo>5</LineNo>\n            <ReqNo>SPRE5000612</ReqNo>\n            <ReqItemID>100003106</ReqItemID>\n            <RFQNo></RFQNo>\n            <RFQItemId></RFQItemId>\n            <Quantity>9.000 </Quantity>\n            <UnitOfMeasure>PCS</UnitOfMeasure>\n            <UnitPrice>3000000.00 </UnitPrice>\n            <DiscountPct></DiscountPct>\n            <DiscountAmt></DiscountAmt>\n            <LocalTaxStatus></LocalTaxStatus>\n            <NationalTaxStatus></NationalTaxStatus>\n            <LocalTaxAmt></LocalTaxAmt>\n            <NationalTaxAmt></NationalTaxAmt>\n            <ProjectNo></ProjectNo>\n            <AccountNo>1000000001</AccountNo>\n            <ShipNo>O151</ShipNo>\n            <EqCode></EqCode>\n            <Description></Description>\n            <PIN>ABL-F002</PIN>\n        </MaterialsLine>\n        <IssuedDate>20260914</IssuedDate>\n        <Processed></Processed>\n    </PO>\n</NS5InterfaceImport>",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/po/sap",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "po", "sap"]
+            },
+            "description": "Upload XML PO ke staging DB. Menggunakan token dari Collection Variables."
+          },
+          "response": [
+            {
+              "name": "200 Success Staged",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"PO XML processed and saved to staging successfully\",\n  \"data\": null\n}"
+            },
+            {
+              "name": "401 Missing or Invalid Header",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Invalid or missing token\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

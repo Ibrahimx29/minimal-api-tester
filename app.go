@@ -26,12 +26,13 @@ func (a *App) startup(ctx context.Context) {
 }
 
 type APIRequest struct {
-	ID      string            `json:"id"`
-	Name    string            `json:"name"`
-	Method  string            `json:"method"`
-	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
-	Body    string            `json:"body"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Method         string            `json:"method"`
+	URL            string            `json:"url"`
+	Headers        map[string]string `json:"headers"`
+	Body           string            `json:"body"`
+	TimeoutSeconds int               `json:"timeout_seconds"`
 }
 
 type Collection struct {
@@ -52,6 +53,14 @@ type APIResponse struct {
 
 // SendRequest performs the HTTP request
 func (a *App) SendRequest(req APIRequest) APIResponse {
+	timeoutSeconds := req.TimeoutSeconds
+	if timeoutSeconds == 0 {
+		timeoutSeconds = 30 // Existing saved requests have no timeout field.
+	}
+	if timeoutSeconds < 1 || timeoutSeconds > 3600 {
+		return APIResponse{Error: "timeout must be between 1 and 3600 seconds"}
+	}
+
 	var bodyReader io.Reader
 	if req.Body != "" {
 		bodyReader = bytes.NewBuffer([]byte(req.Body))
@@ -66,7 +75,7 @@ func (a *App) SendRequest(req APIRequest) APIResponse {
 		httpReq.Header.Set(k, v)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: time.Duration(timeoutSeconds) * time.Second}
 	start := time.Now()
 	resp, err := client.Do(httpReq)
 	elapsed := time.Since(start).Milliseconds()

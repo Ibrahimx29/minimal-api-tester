@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-DnnWlBej.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-12beH9wO.css">
+  <script type="module" crossorigin src="/assets/index-rb06rlsq.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Cgd69ecX.css">
 </head>
 
 <body>
@@ -22,10 +22,17 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
           Collections
         </div>
-        <button id="newCollectionBtn" class="btn-icon" title="New Collection">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
+        <div class="sidebar-actions">
+          <button id="importCollectionBtn" class="btn-icon" title="Import Postman Collection" aria-label="Import Postman Collection">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V3"/><path d="m7 8 5-5 5 5"/><path d="M4 16v4h16v-4"/></svg>
+          </button>
+          <button id="newCollectionBtn" class="btn-icon" title="New Collection" aria-label="New Collection">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
       </div>
+      <input id="importCollectionFile" type="file" accept=".json,application/json" hidden />
+      <div id="importStatus" class="import-status" role="status" aria-live="polite"></div>
       <div class="sidebar-search">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="searchInput" type="text" placeholder="Search requests..." />
@@ -39,6 +46,7 @@
       <!-- Request Name Bar -->
       <div class="request-name-bar">
         <input id="reqName" type="text" placeholder="Request name (optional)" />
+        <label class="timeout-control" for="timeoutSeconds">Timeout <input id="timeoutSeconds" type="number" min="1" max="3600" step="1" value="30" required aria-label="Request timeout in seconds" /> sec</label>
         <button id="saveRequestBtn" class="btn-save" title="Save to collection">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Save
