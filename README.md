@@ -33,6 +33,20 @@ The Go test command needs `frontend/dist`, so build the frontend first. On Power
 
 Add `-Installer` to build an NSIS installer when NSIS is installed. The executable is written to `build/bin`.
 
+## Release
+
+This project uses Wails to generate Windows resources from `wails.json` and `build/windows/info.json`. The version is also injected into `main.version` by `build.ps1`. A separate `go-winres` step is not needed for this Wails app.
+
+1. Update `CHANGELOG.md` and `wails.json` to the new version, then run the checks above.
+2. Commit the source changes and create an annotated tag such as `v1.0.1` on that commit.
+3. Run `.\build.ps1 -Version "1.0.1"` and verify the executable version:
+
+   ```powershell
+   (Get-Item .\build\bin\minimal-api-tester.exe).VersionInfo | Select-Object FileVersion, ProductVersion
+   ```
+
+4. Push the branch and tag after reviewing the release artifacts.
+
 ## Data and request behavior
 
 Collections are stored in `%APPDATA%\MinimalAPITester\collections.json`. This file can contain authentication headers and other secrets; keep access to it restricted. Save updates the selected request and preserves its ID. Choosing another collection in the Save dialog moves that request there.
