@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minimal API Tester</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/assets/index-DnnWlBej.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-12beH9wO.css">
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Collections
+        </div>
+        <button id="newCollectionBtn" class="btn-icon" title="New Collection">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="sidebar-search">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchInput" type="text" placeholder="Search requests..." />
+      </div>
+      <div id="collectionTree" class="collection-tree"></div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- Request Name Bar -->
+      <div class="request-name-bar">
+        <input id="reqName" type="text" placeholder="Request name (optional)" />
+        <button id="saveRequestBtn" class="btn-save" title="Save to collection">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save
+        </button>
+      </div>
+
+      <!-- URL Bar -->
+      <div class="request-bar">
+        <select id="method">
+          <option value="GET">GET</option>
+          <option value="POST" selected>POST</option>
+          <option value="PUT">PUT</option>
+          <option value="PATCH">PATCH</option>
+          <option value="DELETE">DELETE</option>
+          <option value="HEAD">HEAD</option>
+          <option value="OPTIONS">OPTIONS</option>
+        </select>
+        <input type="text" id="url" placeholder="https://api.example.com/v1/endpoint" />
+        <button id="sendBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send
+        </button>
+      </div>
+
+      <!-- Request Tabs -->
+      <div class="editor-tabs">
+        <button class="tab-btn active" data-target="pane-params">Params</button>
+        <button class="tab-btn" data-target="pane-headers">Headers</button>
+        <button class="tab-btn" data-target="pane-body">Body</button>
+        <button class="tab-btn" data-target="pane-auth">Auth</button>
+      </div>
+
+      <!-- Params Pane -->
+      <div class="editor-pane active" id="pane-params">
+        <div class="kv-editor" id="paramsEditor">
+          <div class="kv-header">
+            <span>Key</span>
+            <span>Value</span>
+            <span></span>
+          </div>
+          <div id="paramsRows"></div>
+          <button class="kv-add-btn" id="addParamBtn">+ Add Parameter</button>
+        </div>
+      </div>
+
+      <!-- Headers Pane -->
+      <div class="editor-pane" id="pane-headers">
+        <div class="kv-editor" id="headersEditor">
+          <div class="kv-header">
+            <span>Key</span>
+            <span>Value</span>
+            <span></span>
+          </div>
+          <div id="headersRows"></div>
+          <button class="kv-add-btn" id="addHeaderBtn">+ Add Header</button>
+        </div>
+      </div>
+
+      <!-- Body Pane -->
+      <div class="editor-pane" id="pane-body">
+        <div class="body-toolbar">
+          <div class="body-type-select">
+            <label>Type:</label>
+            <select id="bodyType">
+              <option value="none">None</option>
+              <option value="json" selected>JSON</option>
+              <option value="text">Plain Text</option>
+              <option value="form">Form URL-encoded</option>
+            </select>
+          </div>
+          <button class="btn-text" id="formatBodyBtn">Format JSON</button>
+        </div>
+        <textarea id="reqBody" placeholder='{"key": "value"}'></textarea>
+      </div>
+
+      <!-- Auth Pane -->
+      <div class="editor-pane" id="pane-auth">
+        <div class="auth-panel">
+          <label>Auth Type</label>
+          <select id="authType">
+            <option value="none">No Auth</option>
+            <option value="bearer">Bearer Token</option>
+            <option value="basic">Basic Auth</option>
+            <option value="api-key">API Key</option>
+          </select>
+          <div id="authFields"></div>
+        </div>
+      </div>
+
+      <!-- Response Section -->
+      <div class="response-section">
+        <div class="response-meta" id="respMeta">
+          <div class="meta-left">
+            <span class="meta-label">Response</span>
+            <span id="statusBadge" class="status-badge">—</span>
+            <span id="timeMs" class="meta-pill">0 ms</span>
+            <span id="sizeBytes" class="meta-pill">0 B</span>
+          </div>
+          <div class="response-format">
+            <select id="formatSelect">
+              <option value="auto">Auto-detect</option>
+              <option value="json">JSON</option>
+              <option value="xml">XML / HTML</option>
+              <option value="raw">Raw</option>
+            </select>
+            <button class="btn-text" id="copyRespBtn">Copy</button>
+          </div>
+        </div>
+        <div class="response-tabs">
+          <button class="resp-tab-btn active" data-rtarget="rtab-body">Body</button>
+          <button class="resp-tab-btn" data-rtarget="rtab-headers">Headers</button>
+        </div>
+        <div class="response-pane">
+          <div class="resp-tab-pane active" id="rtab-body">
+            <pre id="respBody">Send a request to see the response here.</pre>
+          </div>
+          <div class="resp-tab-pane" id="rtab-headers">
+            <div id="respHeaders" class="resp-headers-list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: New Collection -->
+  <div class="modal-overlay" id="collectionModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">New Collection</h3>
+        <button class="modal-close" id="closeModal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label>Collection Name</label>
+        <input type="text" id="collectionNameInput" placeholder="My API Collection" />
+        <span class="modal-error" id="collectionNameError"></span>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="cancelModal">Cancel</button>
+        <button class="btn-primary" id="confirmModal">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Save Request -->
+  <div class="modal-overlay" id="saveRequestModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Save Request</h3>
+        <button class="modal-close" id="closeSaveModal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label>Request Name</label>
+        <input type="text" id="saveReqNameInput" placeholder="Get Users" />
+        <label>Save to Collection</label>
+        <select id="saveToCollection"></select>
+        <button class="btn-ghost btn-new-col" id="createNewColFromSave">+ New Collection</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="cancelSaveModal">Cancel</button>
+        <button class="btn-primary" id="confirmSaveModal">Save Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
+  <div id="contextMenu" class="context-menu">
+    <div class="ctx-item" id="ctx-rename">Rename</div>
+    <div class="ctx-item" id="ctx-add-request">Add Request</div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-item danger" id="ctx-delete">Delete</div>
+  </div>
+
+</body>
+
+</html>
